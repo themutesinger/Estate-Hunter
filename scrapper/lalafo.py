@@ -2,27 +2,31 @@ import asyncio
 import aiohttp
 
 from settings.settings import LALAFO, HEADERS
+from scrapper.common import pack_ad_to_dict
 
 
 def clean_data(data):
     cleaned_data = []
     for item in data:
-        area = int(item['title'].split()[0])
-        url = 'https://lalafo.kg'+item['url']
+        try:
+            area = int(item['title'].split()[0])
+        except:
+            area = None
+        url = LALAFO['domen'] + item['url']
         try:
             image = item['images'][0]['thumbnail_url']
         except:
             image = None
-        cleaned_data.append(
-            {
-                'price': item['price'],
-                'description': item['description'],
-                'url': url,
-                'adress': item['city_alias'],
-                'image': image,
-                'area': area
-            }
-        )
+        cleaned_data.append(pack_ad_to_dict(
+            address=item['city_alias'],
+            title=item['title'],
+            price=item['price'],
+            description=item['description'],
+            url=url,
+            image=image,
+            area=area
+        ))
+
     return cleaned_data
 
 
@@ -32,7 +36,7 @@ async def fetch_data(url, headers):
             return await response.json()
 
 
-async def scrape():
+async def scrape_lalafo():
     headers = HEADERS
     url = LALAFO['url']
     data = []
@@ -41,12 +45,11 @@ async def scrape():
     responses = await asyncio.gather(*tasks)
     for response in responses:
         data = data + response['items']
-    return data
+    return clean_data(data)
 
 
-def scrape_lalafo():
-    loop = asyncio.get_event_loop()
-    scraped_data = loop.run_until_complete(scrape())
-    loop.close()
-    return clean_data(scraped_data)
-
+# def scrape_lalafo():
+#     loop = asyncio.get_event_loop()
+#     scraped_data = loop.run_until_complete(scrape())
+#     loop.close()
+#     return clean_data(scraped_data)
